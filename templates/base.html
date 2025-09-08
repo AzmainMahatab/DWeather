@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Weather App{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+<header class="app-header">
+    <div class="header-content">
+        <h1 class="app-title">
+            <a href="{% url 'weather:index' %}" class="title-link">
+                <span class="material-icons"
+                      style="font-size: 32px; vertical-align: middle; margin-right: 8px;">wb_sunny</span>
+                Weather App
+            </a>
+        </h1>
+        <p class="app-subtitle">Beautiful weather forecasts powered by Open-Meteo</p>
+    </div>
+</header>
+
+<main class="container">
+    <!-- Messages -->
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="message {{ message.tags }}">
+                        <span class="material-icons">
+                            {% if message.tags == 'error' %}error{% else %}check_circle{% endif %}
+                        </span>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+</main>
+
+<script>
+    // Add some interactive features
+    document.addEventListener('DOMContentLoaded', function () {
+        // Animate weather cards on load
+        const weatherCard = document.querySelector('.weather-card');
+        if (weatherCard) {
+            weatherCard.style.opacity = '0';
+            weatherCard.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                weatherCard.style.transition = 'all 0.6s ease';
+                weatherCard.style.opacity = '1';
+                weatherCard.style.transform = 'translateY(0)';
+            }, 100);
+        }
+
+        // Auto-dismiss messages after 5 seconds
+        const messages = document.querySelectorAll('.message');
+        messages.forEach(message => {
+            setTimeout(() => {
+                message.style.transition = 'opacity 0.5s ease';
+                message.style.opacity = '0';
+                setTimeout(() => message.remove(), 500);
+            }, 5000);
+        });
+
+        // Add loading state to search button
+        const searchForm = document.querySelector('.search-form');
+        const searchButton = document.querySelector('.search-button');
+        if (searchForm && searchButton) {
+            searchForm.addEventListener('submit', function () {
+                searchButton.innerHTML = '<span class="loading"></span> Searching...';
+                searchButton.disabled = true;
+            });
+        }
+    });
+
+    // Weather icon mapping function
+    function getWeatherIcon(code) {
+        const iconMap = {
+            0: 'wb_sunny',           // Clear sky
+            1: 'wb_sunny',           // Mainly clear
+            2: 'partly_cloudy_day',  // Partly cloudy
+            3: 'cloud',              // Overcast
+            45: 'foggy',             // Fog
+            48: 'foggy',             // Depositing rime fog
+            51: 'grain',             // Light drizzle
+            53: 'grain',             // Moderate drizzle
+            55: 'grain',             // Dense drizzle
+            61: 'rainy',             // Slight rain
+            63: 'rainy',             // Moderate rain
+            65: 'rainy',             // Heavy rain
+            71: 'ac_unit',           // Slight snow
+            73: 'ac_unit',           // Moderate snow
+            75: 'ac_unit',           // Heavy snow
+            80: 'rainy',             // Slight rain showers
+            81: 'rainy',             // Moderate rain showers
+            82: 'rainy',             // Violent rain showers
+            95: 'thunderstorm',      // Thunderstorm
+            96: 'thunderstorm',      // Thunderstorm with hail
+            99: 'thunderstorm'       // Thunderstorm with heavy hail
+        };
+        return iconMap[code] || 'wb_sunny';
+    }
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

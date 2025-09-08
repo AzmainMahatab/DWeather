@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Weather App - Beautiful Forecasts{% endblock %}
+
+{% block content %}
+<div class="search-section">
+    <h2 class="search-title">
+        <span class="material-icons" style="font-size: 28px; vertical-align: middle; margin-right: 8px;">search</span>
+        Search for Weather
+    </h2>
+    <form method="post" action="{% url 'weather:search' %}" class="search-form">
+        {% csrf_token %}
+        <input
+            type="text"
+            name="city"
+            placeholder="Enter city name (e.g., London, New York, Tokyo)"
+            class="search-input"
+            required
+            autocomplete="off"
+        >
+        <button type="submit" class="search-button">
+            <span class="material-icons">search</span>
+            Get Weather
+        </button>
+    </form>
+</div>
+
+<!-- Recent Locations loaded from localStorage -->
+<div class="recent-locations" id="recent-locations-section" style="display: none;">
+    <h3>
+        <span class="material-icons" style="font-size: 24px; vertical-align: middle; margin-right: 8px;">history</span>
+        Recent Locations
+    </h3>
+    <div class="locations-grid" id="recent-locations-grid">
+        <!-- Will be populated by JavaScript from localStorage -->
+    </div>
+</div>
+
+<div class="search-section" style="margin-top: 32px; background: linear-gradient(135deg, var(--md-sys-color-tertiary-container) 0%, var(--md-sys-color-secondary-container) 100%);">
+    <h3 style="color: var(--md-sys-color-on-tertiary-container); margin-bottom: 16px;">
+        <span class="material-icons" style="font-size: 24px; vertical-align: middle; margin-right: 8px;">info</span>
+        Features
+    </h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; text-align: left;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="material-icons" style="color: var(--weather-sunny); font-size: 32px;">wb_sunny</span>
+            <div>
+                <h4 style="margin-bottom: 4px; color: var(--md-sys-color-on-tertiary-container);">Real-time Weather</h4>
+                <p style="font-size: 14px; opacity: 0.8; color: var(--md-sys-color-on-tertiary-container);">Current conditions with detailed metrics</p>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="material-icons" style="color: var(--weather-rainy); font-size: 32px;">schedule</span>
+            <div>
+                <h4 style="margin-bottom: 4px; color: var(--md-sys-color-on-tertiary-container);">Hourly Forecast</h4>
+                <p style="font-size: 14px; opacity: 0.8; color: var(--md-sys-color-on-tertiary-container);">24-hour detailed predictions</p>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="material-icons" style="color: var(--weather-cloudy); font-size: 32px;">calendar_today</span>
+            <div>
+                <h4 style="margin-bottom: 4px; color: var(--md-sys-color-on-tertiary-container);">7-Day Forecast</h4>
+                <p style="font-size: 14px; opacity: 0.8; color: var(--md-sys-color-on-tertiary-container);">Extended weather outlook</p>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="material-icons" style="color: var(--md-sys-color-primary); font-size: 32px;">storage</span>
+            <div>
+                <h4 style="margin-bottom: 4px; color: var(--md-sys-color-on-tertiary-container);">Personal History</h4>
+                <p style="font-size: 14px; opacity: 0.8; color: var(--md-sys-color-on-tertiary-container);">Your searches saved locally</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Weather History Manager using localStorage
+class WeatherHistory {
+    constructor() {
+        this.maxItems = 10;
+        this.storageKey = 'weatherHistory';
+    }
+
+    getHistory() {
+        try {
+            const history = localStorage.getItem(this.storageKey);
+            return history ? JSON.parse(history) : [];
+        } catch (e) {
+            console.warn('Error reading weather history:', e);
+            return [];
+        }
+    }
+
+    addLocation(location) {
+        try {
+            let history = this.getHistory();
+
+            // Add timestamp
+            location.searched_at = new Date().toISOString();
+
+            // Remove duplicate if exists
+            history = history.filter(item =>
+                !(item.name === location.name && item.country === location.country)
+            );
+
+            // Add to beginning
+            history.unshift(location);
+
+            // Limit to maxItems
+            history = history.slice(0, this.maxItems);
+
+            // Save back to localStorage
+            localStorage.setItem(this.storageKey, JSON.stringify(history));
+
+            return true;
+        } catch (e) {
+            console.warn('Error saving to weather history:', e);
+            return false;
+        }
+    }
+
+    clearHistory() {
+        try {
+            localStorage.removeItem(this.storageKey);
+            return true;
+        } catch (e) {
+            console.warn('Error clearing weather history:', e);
+            return false;
+        }
+    }
+}
+
+// Initialize history manager
+const weatherHistory = new WeatherHistory();
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Load and display recent locations
+    displayRecentLocations();
+
+    // Add focus animation to search input
+    const searchInput = document.querySelector('.search-input');
+    if (searchInput) {
+        searchInput.addEventListener('focus', function() {
+            this.parentElement.style.transform = 'scale(1.02)';
+            this.parentElement.style.transition = 'transform 0.2s ease';
+        });
+
+        searchInput.addEventListener('blur', function() {
+            this.parentElement.style.transform = 'scale(1)';
+        });
+    }
+
+    // Animate feature cards on scroll
+    const featureCards = document.querySelectorAll('.search-section > div > div');
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    });
+
+    featureCards.forEach(function(card, index) {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = `opacity 0.6s ease ${index * 0.1}s, transform 0.6s ease ${index * 0.1}s`;
+        observer.observe(card);
+    });
+});
+
+function displayRecentLocations() {
+    const history = weatherHistory.getHistory();
+    const section = document.getElementById('recent-locations-section');
+    const grid = document.getElementById('recent-locations-grid');
+
+    if (history.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+
+    // Clear existing content
+    grid.innerHTML = '';
+
+    // Create location chips
+    history.forEach(location => {
+        const chip = document.createElement('a');
+        chip.href = `/forecast/${encodeURIComponent(location.name)}/`;
+        chip.className = 'location-chip';
+        chip.innerHTML = `
+            <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">place</span>
+            ${location.name}, ${location.country}
+        `;
+        grid.appendChild(chip);
+    });
+
+    // Add clear history button
+    const clearButton = document.createElement('button');
+    clearButton.className = 'location-chip';
+    clearButton.style.background = 'var(--md-sys-color-error-container)';
+    clearButton.style.color = 'var(--md-sys-color-on-error-container)';
+    clearButton.style.border = 'none';
+    clearButton.style.cursor = 'pointer';
+    clearButton.innerHTML = `
+        <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">clear</span>
+        Clear History
+    `;
+    clearButton.addEventListener('click', function() {
+        if (confirm('Clear all search history?')) {
+            weatherHistory.clearHistory();
+            displayRecentLocations();
+        }
+    });
+    grid.appendChild(clearButton);
+
+    // Show the section
+    section.style.display = 'block';
+}
+
+// Global function to add location to history (called from weather detail page)
+function addToWeatherHistory(location) {
+    return weatherHistory.addLocation(location);
+}
+</script>
+{% endblock %}

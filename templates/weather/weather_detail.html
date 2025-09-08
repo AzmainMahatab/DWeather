@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ location.name }} Weather - Weather App{% endblock %}
+
+{% block content %}
+<div class="weather-card">
+    <div class="weather-header">
+        <div class="location-info">
+            <h1>{{ location.name }}</h1>
+            <p class="country">{{ location.country }}</p>
+        </div>
+        <div class="weather-icon">
+            <span class="material-icons" style="font-size: 64px;">{{ weather_icon }}</span>
+        </div>
+    </div>
+
+    <div class="current-weather">
+        <div class="temperature-display">
+            <div class="temperature">{{ current_weather.temperature_2m|floatformat:0 }}°</div>
+            <div class="weather-description">{{ weather_info.description }}</div>
+        </div>
+
+        <div class="weather-details">
+            <div class="detail-item">
+                <div class="detail-label">
+                    <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">thermostat</span>
+                    Feels Like
+                </div>
+                <div class="detail-value">{{ current_weather.apparent_temperature|floatformat:0 }}°C</div>
+            </div>
+
+            <div class="detail-item">
+                <div class="detail-label">
+                    <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">water_drop</span>
+                    Humidity
+                </div>
+                <div class="detail-value">{{ current_weather.relative_humidity_2m }}%</div>
+            </div>
+
+            <div class="detail-item">
+                <div class="detail-label">
+                    <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">air</span>
+                    Wind Speed
+                </div>
+                <div class="detail-value">{{ current_weather.wind_speed_10m|floatformat:1 }} km/h</div>
+            </div>
+
+            <div class="detail-item">
+                <div class="detail-label">
+                    <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">compress</span>
+                    Pressure
+                </div>
+                <div class="detail-value">{{ current_weather.surface_pressure|floatformat:0 }} hPa</div>
+            </div>
+
+            {% if current_weather.uv_index %}
+            <div class="detail-item">
+                <div class="detail-label">
+                    <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">wb_sunny</span>
+                    UV Index
+                </div>
+                <div class="detail-value">{{ current_weather.uv_index|floatformat:1 }}</div>
+            </div>
+            {% endif %}
+
+            <div class="detail-item">
+                <div class="detail-label">
+                    <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">explore</span>
+                    Wind Direction
+                </div>
+                <div class="detail-value">{{ wind_direction_text }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="forecast-section">
+    <h2 class="section-title">
+        <span class="material-icons" style="font-size: 28px; vertical-align: middle; margin-right: 8px;">schedule</span>
+        24-Hour Forecast
+    </h2>
+
+    <div class="hourly-forecast">
+        <div class="forecast-scroll">
+            {% for item in hourly_forecast %}
+                <div class="forecast-item">
+                    <div class="forecast-time">{{ item.time }}</div>
+                    <div class="forecast-icon">
+                        <span class="material-icons">{{ item.icon }}</span>
+                    </div>
+                    <div class="forecast-temp">{{ item.temperature }}°</div>
+                    <div class="forecast-desc">{{ item.wind_speed }} km/h</div>
+                </div>
+            {% empty %}
+                <div class="forecast-item">
+                    <div class="forecast-time">--:--</div>
+                    <div class="forecast-icon">
+                        <span class="material-icons">wb_sunny</span>
+                    </div>
+                    <div class="forecast-temp">--°</div>
+                    <div class="forecast-desc">No data</div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="forecast-section">
+    <h2 class="section-title">
+        <span class="material-icons" style="font-size: 28px; vertical-align: middle; margin-right: 8px;">calendar_today</span>
+        7-Day Forecast
+    </h2>
+
+    <div class="daily-forecast">
+        <div class="forecast-scroll">
+            {% for item in daily_forecast %}
+                <div class="forecast-item">
+                    <div class="forecast-time">{{ item.date }}</div>
+                    <div class="forecast-icon">
+                        <span class="material-icons">{{ item.icon }}</span>
+                    </div>
+                    <div class="temp-range">
+                        <span class="temp-high">{{ item.temp_max }}°</span>
+                        <span class="temp-low">{{ item.temp_min }}°</span>
+                    </div>
+                    <div class="forecast-desc">{{ item.precipitation_text }}</div>
+                </div>
+            {% empty %}
+                <div class="forecast-item">
+                    <div class="forecast-time">No data</div>
+                    <div class="forecast-icon">
+                        <span class="material-icons">wb_sunny</span>
+                    </div>
+                    <div class="temp-range">
+                        <span class="temp-high">--°</span>
+                        <span class="temp-low">--°</span>
+                    </div>
+                    <div class="forecast-desc">No data</div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="search-section" style="margin-top: 32px;">
+    <h3 style="margin-bottom: 24px;">
+        <span class="material-icons" style="font-size: 24px; vertical-align: middle; margin-right: 8px;">search</span>
+        Search Another Location
+    </h3>
+    <form method="post" action="{% url 'weather:search' %}" class="search-form">
+        {% csrf_token %}
+        <input
+            type="text"
+            name="city"
+            placeholder="Enter city name"
+            class="search-input"
+            required
+        >
+        <button type="submit" class="search-button">
+            <span class="material-icons">search</span>
+            Get Weather
+        </button>
+    </form>
+</div>
+
+<!-- Hidden data for localStorage -->
+<script id="location-data" type="application/json">{{ location_json|safe }}</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Automatically save this location to localStorage
+    try {
+        const locationScript = document.getElementById('location-data');
+        if (locationScript) {
+            const locationData = JSON.parse(locationScript.textContent);
+
+            // Save to history if addToWeatherHistory function exists (from index page)
+            if (typeof addToWeatherHistory === 'function') {
+                addToWeatherHistory(locationData);
+            } else {
+                // Implement localStorage directly if function not available
+                const storageKey = 'weatherHistory';
+                const maxItems = 10;
+
+                let history = [];
+                try {
+                    const stored = localStorage.getItem(storageKey);
+                    history = stored ? JSON.parse(stored) : [];
+                } catch (e) {
+                    console.warn('Error reading weather history:', e);
+                }
+
+                // Add timestamp
+                locationData.searched_at = new Date().toISOString();
+
+                // Remove duplicate if exists
+                history = history.filter(item =>
+                    !(item.name === locationData.name && item.country === locationData.country)
+                );
+
+                // Add to beginning
+                history.unshift(locationData);
+
+                // Limit to maxItems
+                history = history.slice(0, maxItems);
+
+                // Save back to localStorage
+                try {
+                    localStorage.setItem(storageKey, JSON.stringify(history));
+                } catch (e) {
+                    console.warn('Error saving to weather history:', e);
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('Error processing location data:', e);
+    }
+
+    // Animate forecast items on scroll (minimal visual enhancement)
+    const forecastItems = document.querySelectorAll('.forecast-item');
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry, index) {
+            if (entry.isIntersecting) {
+                setTimeout(() => {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }, index * 50);
+            }
+        });
+    });
+
+    forecastItems.forEach(function(item) {
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(20px)';
+        item.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        observer.observe(item);
+    });
+});
+</script>
+{% endblock %}
